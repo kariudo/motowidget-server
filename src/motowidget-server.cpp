@@ -51,44 +51,39 @@ void readStates(Request &req, Response &res) {
       btoa(powerStates.highbeam), btoa(powerStates.neutral));
 }
 
-void updateTurnL(Request &req, Response &res) {
+void updateItemFromRequest(Request &req, Response &res, char *description,
+                           int outputPin, bool &stateItem) {
   bool state = (req.read() != '0');
-  Serial.printf("[API] Turn L: \%s", btoo(state));
-  mcp.digitalWrite(TURN_L, state);
-  powerStates.turnL = state;
+  Serial.printf("[API] %s: \%s\n", description, btoo(state));
+  mcp.digitalWrite(outputPin, state);
+  stateItem = state;
   return readStates(req, res);
+}
+
+void updateTurnL(Request &req, Response &res) {
+  char desc[] = "Turn L";
+  return updateItemFromRequest(req, res, desc, TURN_L, powerStates.turnL);
 }
 
 void updateTurnR(Request &req, Response &res) {
-  bool state = (req.read() != '0');
-  Serial.printf("[API] Turn R: \%s", btoo(state));
-  mcp.digitalWrite(TURN_R, state);
-  powerStates.turnR = state;
-  return readStates(req, res);
+  char desc[] = "Turn R";
+  return updateItemFromRequest(req, res, desc, TURN_R, powerStates.turnR);
 }
 
 void updateBrake(Request &req, Response &res) {
-  bool state = (req.read() != '0');
-  Serial.printf("[API] Brake: \%s", btoo(state));
-  mcp.digitalWrite(BRAKE_LIGHT, state);
-  powerStates.brake = state;
-  return readStates(req, res);
+  char desc[] = "Brake";
+  return updateItemFromRequest(req, res, desc, BRAKE_LIGHT, powerStates.brake);
 }
 
 void updateHighbeam(Request &req, Response &res) {
-  bool state = (req.read() != '0');
-  Serial.printf("[API] Highbeam: \%s", btoo(state));
-  mcp.digitalWrite(HEADLIGHT_HIGH, state);
-  powerStates.highbeam = state;
-  return readStates(req, res);
+  char desc[] = "Highbeam";
+  return updateItemFromRequest(req, res, desc, HEADLIGHT_HIGH,
+                               powerStates.highbeam);
 }
 
 void updateNeutral(Request &req, Response &res) {
-  bool state = (req.read() != '0');
-  Serial.printf("[API] Neutral: \%s", btoo(state));
-  mcp.digitalWrite(NEUTRAL, state);
-  powerStates.neutral = state;
-  return readStates(req, res);
+  char desc[] = "Neutral";
+  return updateItemFromRequest(req, res, desc, NEUTRAL, powerStates.neutral);
 }
 
 void reset_mcp23017() {
