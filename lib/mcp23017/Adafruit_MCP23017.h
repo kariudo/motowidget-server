@@ -1,21 +1,22 @@
-/*************************************************** 
+/***************************************************
   This is a library for the MCP23017 i2c port expander
 
-  These displays use I2C to communicate, 2 pins are required to  
+  These displays use I2C to communicate, 2 pins are required to
   interface
-  Adafruit invests time and resources providing this open source code, 
-  please support Adafruit and open-source hardware by purchasing 
+  Adafruit invests time and resources providing this open source code,
+  please support Adafruit and open-source hardware by purchasing
   products from Adafruit!
 
-  Written by Limor Fried/Ladyada for Adafruit Industries.  
+  Written by Limor Fried/Ladyada for Adafruit Industries.
   BSD license, all text above must be included in any redistribution
  ****************************************************/
 
-/* Note for the ESP-32 IDF: The i2c subsystem is not initalized 
+/* Note for the ESP-32 IDF: The i2c subsystem is not initalized
  * by any of this code.  You must do that before calling the
  * begin() method.  See the generic_i2c_master_init() function
  * in generic_i2c_rw.{h,cpp}
  */
+#include <stdint.h>
 
 #ifndef _Adafruit_MCP23017_H_
 #define _Adafruit_MCP23017_H_
@@ -47,7 +48,7 @@ public:
   uint16_t readRegisterWord(uint8_t addr);
   void writeRegisterWord(uint8_t addr, uint16_t value);
 
- private:
+private:
   uint8_t i2c_port;
   uint8_t i2caddr;
 
@@ -55,11 +56,12 @@ public:
   uint8_t regForPin(uint8_t pin, uint8_t portAaddr, uint8_t portBaddr);
 
   /**
-   * Utility private method to update a register associated with a pin (whether port A/B)
-   * reads its value, updates the particular bit, and writes its value.
+   * Utility private method to update a register associated with a pin (whether
+   * port A/B) reads its value, updates the particular bit, and writes its
+   * value.
    */
-  void updateRegisterBit(uint8_t p, uint8_t pValue, uint8_t portAaddr, uint8_t portBaddr);
-
+  void updateRegisterBit(uint8_t p, uint8_t pValue, uint8_t portAaddr,
+                         uint8_t portBaddr);
 };
 
 #define MCP23017_ADDRESS 0x20
@@ -76,7 +78,6 @@ public:
 #define MCP23017_INTCAPA 0x10
 #define MCP23017_GPIOA 0x12
 #define MCP23017_OLATA 0x14
-
 
 #define MCP23017_IODIRB 0x01
 #define MCP23017_IPOLB 0x03
