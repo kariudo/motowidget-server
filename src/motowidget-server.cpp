@@ -1,13 +1,13 @@
-#include <Arduino.h>
-#include <WiFi.h>
-#include <Adafruit_MCP23017.h>
-#include <generic_i2c_rw.h>
-#include "freertos/FreeRTOS.h"
+#include "Constants.h"
+#include "SwitchStates.h"
 #include "aWOT.h"
 #include "driver/gpio.h"
 #include "driver/i2c.h"
-#include "SwitchStates.h"
-#include "Constants.h"
+#include "freertos/FreeRTOS.h"
+#include <Adafruit_MCP23017.h>
+#include <Arduino.h>
+#include <WiFi.h>
+#include <generic_i2c_rw.h>
 
 #include "StaticFiles.h"
 
@@ -23,17 +23,13 @@ long lastBlink;
 
 uint blinkTime = 300;
 
-void blinkers()
-{
-  if ((millis() - lastBlink) >= blinkTime)
-  {
-    if (powerStates.turnL)
-    {
+void blinkers() {
+  if ((millis() - lastBlink) >= blinkTime) {
+    if (powerStates.turnL) {
       bool leftBlink = mcp.digitalRead(TURN_L);
       mcp.digitalWrite(TURN_L, !leftBlink);
     }
-    if (powerStates.turnR)
-    {
+    if (powerStates.turnR) {
       bool rightBlink = mcp.digitalRead(TURN_R);
       mcp.digitalWrite(TURN_R, !rightBlink);
     }
@@ -42,21 +38,21 @@ void blinkers()
 }
 
 // Route handlers
-void readLed(Request &req, Response &res)
-{
-  // res.print(ledOn);
+void readStates(Request &req, Response &res) {
+  res.printf(
+      "{\"turnL\":%d},\"turnR\":$d,\"brake\":$d,\"highbeam\":$d,\"neutral\":$d",
+      powerStates.turnL, powerStates.turnR, powerStates.brake,
+      powerStates.highbeam, powerStates.neutral);
 }
 
-void updateLed(Request &req, Response &res)
-{
+void updateLed(Request &req, Response &res) {
   // ledOn = (req.read() != '0');
   // Serial.println(ledOn);
   // digitalWrite(LED_BUILTIN, ledOn);
   return readLed(req, res);
 }
 
-void reset_mcp23017()
-{
+void reset_mcp23017() {
   gpio_pad_select_gpio((gpio_num_t)MCP23017_RESET_GPIO);
   gpio_set_direction((gpio_num_t)MCP23017_RESET_GPIO, GPIO_MODE_OUTPUT);
   gpio_set_level((gpio_num_t)MCP23017_RESET_GPIO, 0);
@@ -65,8 +61,7 @@ void reset_mcp23017()
   vTaskDelay(1);
 }
 
-void updateOutputsToCurrentInputStates()
-{
+void updateOutputsToCurrentInputStates() {
   mcp.digitalWrite(TURN_R, !mcp.digitalRead(SW_TURN_R));
   mcp.digitalWrite(TURN_L, !mcp.digitalRead(SW_TURN_L));
   mcp.digitalWrite(BRAKE_LIGHT, !mcp.digitalRead(SW_BRAKE));
@@ -75,9 +70,9 @@ void updateOutputsToCurrentInputStates()
 }
 
 // Setup
-void setup()
-{
-  generic_i2c_master_init(I2C_NUM_0, I2C_MASTER_SCL_IO, I2C_MASTER_SDA_IO, I2C_MASTER_FREQ_HZ);
+void setup() {
+  generic_i2c_master_init(I2C_NUM_0, I2C_MASTER_SCL_IO, I2C_MASTER_SDA_IO,
+                          I2C_MASTER_FREQ_HZ);
   reset_mcp23017();
 
   pinMode(MCP23017_INT_GPIO, INPUT);
@@ -128,8 +123,7 @@ void setup()
 }
 
 // Main execution
-void loop()
-{
+void loop() {
   // WiFiClient client = server.available();
 
   // if (client.connected())
@@ -138,7 +132,8 @@ void loop()
   // }
 
   // Scan I/O for changes to buttons and inputs
-  SwitchStates::checkForButtonStateChanges(&mcp, &lastButtonStates, &powerStates);
+  SwitchStates::checkForButtonStateChanges(&mcp, &lastButtonStates,
+                                           &powerStates);
 
   // Update flashing lights
   blinkers();
