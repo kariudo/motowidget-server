@@ -65,7 +65,7 @@ void reset_mcp23017()
   vTaskDelay(1);
 }
 
-void updateDebugStates()
+void updateOutputsToCurrentInputStates()
 {
   mcp.digitalWrite(TURN_R, !mcp.digitalRead(SW_TURN_R));
   mcp.digitalWrite(TURN_L, !mcp.digitalRead(SW_TURN_L));
@@ -82,35 +82,26 @@ void setup()
 
   pinMode(MCP23017_INT_GPIO, INPUT);
 
-  mcp.begin(); // use default address 0
+  mcp.begin(0);
 
-  // mcp.setupInterrupts(true, false, LOW);
-
+  // Set output pins on extender
   mcp.pinMode(TURN_L, OUTPUT);
   mcp.pinMode(TURN_R, OUTPUT);
   mcp.pinMode(BRAKE_LIGHT, OUTPUT);
   mcp.pinMode(HEADLIGHT_HIGH, OUTPUT);
   mcp.pinMode(NEUTRAL, OUTPUT);
 
-  mcp.pullUp(SW_TURN_L, HIGH); // turn on a 100K pullup internally
+  // Set input pins on extender
   mcp.pinMode(SW_TURN_L, INPUT);
-
-  mcp.pullUp(SW_TURN_R, HIGH);
+  mcp.pullUp(SW_TURN_L, HIGH);
   mcp.pinMode(SW_TURN_R, INPUT);
-  // mcp.setupInterruptPin(SW_TURN_R, FALLING);
-
-  mcp.pullUp(SW_BRAKE, HIGH);
+  mcp.pullUp(SW_TURN_R, HIGH);
   mcp.pinMode(SW_BRAKE, INPUT);
-  mcp.pullUp(SW_HEADLIGHT_HIGH, HIGH);
+  mcp.pullUp(SW_BRAKE, HIGH);
   mcp.pinMode(SW_HEADLIGHT_HIGH, INPUT);
-  mcp.pullUp(SW_NEUTRAL, HIGH);
+  mcp.pullUp(SW_HEADLIGHT_HIGH, HIGH);
   mcp.pinMode(SW_NEUTRAL, INPUT);
-
-  // pinMode(LED_BUILTIN, OUTPUT);
-  // digitalWrite(LED_BUILTIN, HIGH);
-  // delay(2000);
-  // digitalWrite(LED_BUILTIN, LOW);
-  Serial.begin(115200);
+  mcp.pullUp(SW_NEUTRAL, HIGH);
 
   // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   // while (WiFi.status() != WL_CONNECTED)
@@ -124,17 +115,13 @@ void setup()
   // app.put("/led", &updateLed);
   // app.use(staticFiles());
 
-  // digitalWrite(TURN_R, mcp.digitalRead(SW_TURN_R));
-  // Serial.printf("TURN_R: %d", mcp.digitalRead(SW_TURN_R));
-
   // server.begin();
 
   // mcp.readGPIOAB();
 
-  // attachInterrupt(digitalPinToInterrupt(MCP23017_INT_GPIO), intCallBack, FALLING);
+  Serial.begin(115200);
 
-  // Serial.println("Monitoring interrupts: ");
-  updateDebugStates();
+  updateOutputsToCurrentInputStates();
 
   // Set initial timer for blinking flashers
   lastBlink = millis();
@@ -143,8 +130,6 @@ void setup()
 // Main execution
 void loop()
 {
-  // if (awakenByInterrupt)
-  //   handleInterrupt();
   // WiFiClient client = server.available();
 
   // if (client.connected())
