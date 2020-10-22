@@ -13,25 +13,44 @@
 
 WiFiServer server(80);
 Application app;
-bool ledOn;
-
-volatile boolean awakenByInterrupt = false;
 
 Adafruit_MCP23017 mcp;
 
 SwitchStates lastButtonStates;
 SwitchStates powerStates;
 
+long lastBlink;
+
+uint blinkTime = 300;
+
+void blinkers()
+{
+  if ((millis() - lastBlink) >= blinkTime)
+  {
+    if (powerStates.turnL)
+    {
+      bool leftBlink = mcp.digitalRead(TURN_L);
+      mcp.digitalWrite(TURN_L, !leftBlink);
+    }
+    if (powerStates.turnR)
+    {
+      bool rightBlink = mcp.digitalRead(TURN_R);
+      mcp.digitalWrite(TURN_R, !rightBlink);
+    }
+    lastBlink = millis();
+  }
+}
+
 // Route handlers
 void readLed(Request &req, Response &res)
 {
-  res.print(ledOn);
+  // res.print(ledOn);
 }
 
 void updateLed(Request &req, Response &res)
 {
-  ledOn = (req.read() != '0');
-  Serial.println(ledOn);
+  // ledOn = (req.read() != '0');
+  // Serial.println(ledOn);
   // digitalWrite(LED_BUILTIN, ledOn);
   return readLed(req, res);
 }
@@ -46,70 +65,6 @@ void reset_mcp23017()
   vTaskDelay(1);
 }
 
-// The int handler will just signal that the int has happen
-// we will do the work from the main loop.
-void intCallBack()
-{
-  Serial.println("Interrupted!");
-
-  awakenByInterrupt = true;
-}
-
-// handy for interrupts triggered by buttons
-// normally signal a few due to bouncing issues
-void cleanInterrupts()
-{
-  // EIFR = 0x01;
-  awakenByInterrupt = false;
-}
-
-void updateLeds()
-{
-  mcp.digitalWrite(TURN_R, mcp.digitalRead(SW_TURN_R));
-  mcp.digitalWrite(TURN_L, mcp.digitalRead(SW_TURN_L));
-  mcp.digitalWrite(BRAKE_LIGHT, mcp.digitalRead(SW_BRAKE));
-  mcp.digitalWrite(HEADLIGHT_HIGH, mcp.digitalRead(SW_HEADLIGHT_HIGH));
-  mcp.digitalWrite(NEUTRAL, mcp.digitalRead(SW_BRAKE));
-}
-
-void handleInterrupt()
-{
-
-  // Get more information from the MCP from the INT
-  uint8_t pin = mcp.getLastInterruptPin();
-  uint8_t val = mcp.getLastInterruptPinValue();
-  Serial.printf("Handling interupt for pin: %d, val: %d", pin, val);
-
-  // // We will flash the led 1 or 2 times depending on the PIN that triggered the Interrupt
-  // // 3 and 4 flases are supposed to be impossible conditions... just for debugging.
-  // uint8_t flashes=4;
-  // if(pin==mcpPinA) flashes=1;
-  // if(pin==mcpPinB) flashes=2;
-  // if(val!=LOW) flashes=3;
-
-  // // simulate some output associated to this
-  // for(int i=0;i<flashes;i++){
-  //   delay(100);
-  //   digitalWrite(ledPin,HIGH);
-  //   delay(100);
-  //   digitalWrite(ledPin,LOW);
-  // }
-
-  if (pin == SW_TURN_R)
-  {
-    Serial.print("Right turn signal button pressed...\n");
-  }
-
-  // we have to wait for the interrupt condition to finish
-  // otherwise we might go to sleep with an ongoing condition and never wake up again.
-  // as, an action is required to clear the INT flag, and allow it to trigger again.
-  // see datasheet for datails.
-  while (!(mcp.digitalRead(SW_TURN_R) && mcp.digitalRead(SW_TURN_L)))
-    ;
-  // and clean queued INT signal
-  cleanInterrupts();
-}
-
 void updateDebugStates()
 {
   mcp.digitalWrite(TURN_R, !mcp.digitalRead(SW_TURN_R));
@@ -118,8 +73,6 @@ void updateDebugStates()
   mcp.digitalWrite(HEADLIGHT_HIGH, !mcp.digitalRead(SW_HEADLIGHT_HIGH));
   mcp.digitalWrite(NEUTRAL, !mcp.digitalRead(SW_BRAKE));
 }
-
-long lastBlink;
 
 // Setup
 void setup()
@@ -185,26 +138,6 @@ void setup()
 
   // Set initial timer for blinking flashers
   lastBlink = millis();
-}
-
-uint blinkTime = 300;
-
-void blinkers()
-{
-  if ((millis() - lastBlink) >= blinkTime)
-  {
-    if (powerStates.turnL)
-    {
-      bool leftBlink = mcp.digitalRead(TURN_L);
-      mcp.digitalWrite(TURN_L, !leftBlink);
-    }
-    if (powerStates.turnR)
-    {
-      bool rightBlink = mcp.digitalRead(TURN_R);
-      mcp.digitalWrite(TURN_R, !rightBlink);
-    }
-    lastBlink = millis();
-  }
 }
 
 // Main execution
