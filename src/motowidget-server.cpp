@@ -46,7 +46,7 @@ void blinkers() {
 // Route handlers
 void readStates(Request &req, Response &res) {
   res.printf(
-      "{\"turnL\":%s},\"turnR\":%s,\"brake\":%s,\"highbeam\":%s,\"neutral\":%s",
+      "{\"turnL\":%s,\"turnR\":%s,\"brake\":%s,\"highbeam\":%s,\"neutral\":%s}",
       btoa(powerStates.turnL), btoa(powerStates.turnR), btoa(powerStates.brake),
       btoa(powerStates.highbeam), btoa(powerStates.neutral));
 }
@@ -140,13 +140,17 @@ void setup() {
   // Set initial output states
   updateOutputsToCurrentInputStates();
 
+  // Enable serial logging
+  Serial.begin(115200);
+
   // Connect to WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting...");
   while (WiFi.status() != WL_CONNECTED) {
     delay(250);
     Serial.print(".");
   }
-  Serial.printf("Connected to '%s', IP:", WIFI_SSID);
+  Serial.printf("\nConnected to '%s', IP: ", WIFI_SSID);
   Serial.println(WiFi.localIP());
 
   // Configure routes
@@ -160,9 +164,6 @@ void setup() {
 
   // Start webserver
   server.begin();
-
-  // Enable serial logging
-  Serial.begin(115200);
 
   // Set initial timer for blinking flashers
   lastBlink = millis();
