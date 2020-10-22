@@ -27,11 +27,11 @@
 #define LED_BUILTIN 2
 
 // Outputs
-#define TURN_R 8
-#define BRAKE_LIGHT 9
+#define TURN_R 12
+#define BRAKE_LIGHT 11
 #define TURN_L 10
-#define HEADLIGHT_HIGH 11
-#define NEUTRAL 12
+#define HEADLIGHT_HIGH 9
+#define NEUTRAL 8
 // #define HORN 2
 // #define IGNITION 2
 // #define HEADLIGHT_LOW 2
@@ -98,6 +98,15 @@ void cleanInterrupts()
   awakenByInterrupt = false;
 }
 
+void updateLeds()
+{
+  mcp.digitalWrite(TURN_R, mcp.digitalRead(SW_TURN_R));
+  mcp.digitalWrite(TURN_L, mcp.digitalRead(SW_TURN_L));
+  mcp.digitalWrite(BRAKE_LIGHT, mcp.digitalRead(SW_BRAKE));
+  mcp.digitalWrite(HEADLIGHT_HIGH, mcp.digitalRead(SW_HEADLIGHT_HIGH));
+  mcp.digitalWrite(NEUTRAL, mcp.digitalRead(SW_BRAKE));
+}
+
 void handleInterrupt()
 {
 
@@ -135,6 +144,95 @@ void handleInterrupt()
   // and clean queued INT signal
   cleanInterrupts();
 }
+
+class SwitchStates
+{
+public:
+  bool turnL;
+  bool turnR;
+  bool brake;
+  bool highbeam;
+  bool neutral;
+};
+
+SwitchStates lastButtonStates;
+SwitchStates powerStates;
+
+SwitchStates readButtonStates()
+{
+  SwitchStates currentStates;
+
+  currentStates.turnL = !mcp.digitalRead(SW_TURN_L);
+  currentStates.turnR = !mcp.digitalRead(SW_TURN_R);
+  currentStates.brake = !mcp.digitalRead(SW_BRAKE);
+  currentStates.highbeam = !mcp.digitalRead(SW_HEADLIGHT_HIGH);
+  currentStates.neutral = !mcp.digitalRead(SW_NEUTRAL);
+
+  return currentStates;
+}
+
+void checkForButtonStateChanges()
+{
+  SwitchStates currenButtontStates = readButtonStates();
+
+  // Toggles
+  if (!lastButtonStates.turnL && currenButtontStates.turnL)
+  {
+    powerStates.turnL = !powerStates.turnL;
+    mcp.digitalWrite(TURN_L, powerStates.turnL);
+    Serial.printf("Left turn toggled: %s\n", powerStates.turnL ? "on" : "off");
+    if (powerStates.turnL && powerStates.turnR)
+    {
+      powerStates.turnR = false;
+      mcp.digitalWrite(TURN_R, 0);
+    }
+  }
+  else if (!lastButtonStates.turnR && currenButtontStates.turnR)
+  {
+    powerStates.turnR = !powerStates.turnR;
+    mcp.digitalWrite(TURN_R, powerStates.turnR);
+    Serial.printf("Right turn toggled: %s\n", powerStates.turnR ? "on" : "off");
+    if (powerStates.turnL && powerStates.turnR)
+    {
+      powerStates.turnL = false;
+      mcp.digitalWrite(TURN_L, 0);
+    }
+  }
+
+  if (!lastButtonStates.highbeam && currenButtontStates.highbeam)
+  {
+    powerStates.highbeam = !powerStates.highbeam;
+    mcp.digitalWrite(HEADLIGHT_HIGH, powerStates.highbeam);
+    Serial.printf("Highbeam toggled: %s\n", powerStates.highbeam ? "on" : "off");
+  }
+
+  // Momentary
+  if (lastButtonStates.brake != currenButtontStates.brake)
+  {
+    powerStates.brake = currenButtontStates.brake;
+    mcp.digitalWrite(BRAKE_LIGHT, powerStates.brake);
+    Serial.printf("Brake is: %s\n", powerStates.brake ? "on" : "off");
+  }
+  if (lastButtonStates.neutral != currenButtontStates.neutral)
+  {
+    powerStates.neutral = currenButtontStates.neutral;
+    mcp.digitalWrite(NEUTRAL, powerStates.neutral);
+    Serial.printf("Neutral is: %s\n", powerStates.neutral ? "on" : "off");
+  }
+
+  lastButtonStates = currenButtontStates;
+}
+
+void updateDebugStates()
+{
+  mcp.digitalWrite(TURN_R, !mcp.digitalRead(SW_TURN_R));
+  mcp.digitalWrite(TURN_L, !mcp.digitalRead(SW_TURN_L));
+  mcp.digitalWrite(BRAKE_LIGHT, !mcp.digitalRead(SW_BRAKE));
+  mcp.digitalWrite(HEADLIGHT_HIGH, !mcp.digitalRead(SW_HEADLIGHT_HIGH));
+  mcp.digitalWrite(NEUTRAL, !mcp.digitalRead(SW_BRAKE));
+}
+
+long lastBlink;
 
 // Setup
 void setup()
@@ -196,6 +294,29 @@ void setup()
   // attachInterrupt(digitalPinToInterrupt(MCP23017_INT_GPIO), intCallBack, FALLING);
 
   // Serial.println("Monitoring interrupts: ");
+  readButtonStates();
+  updateDebugStates();
+  lastBlink = millis();
+}
+
+uint blinkTime = 300;
+
+void blinkers()
+{
+  if ((millis() - lastBlink) >= blinkTime)
+  {
+    if (powerStates.turnL)
+    {
+      bool leftBlink = mcp.digitalRead(TURN_L);
+      mcp.digitalWrite(TURN_L, !leftBlink);
+    }
+    if (powerStates.turnR)
+    {
+      bool rightBlink = mcp.digitalRead(TURN_R);
+      mcp.digitalWrite(TURN_R, !rightBlink);
+    }
+    lastBlink = millis();
+  }
 }
 
 // Main execution
@@ -210,12 +331,12 @@ void loop()
   //   app.process(&client);
   // }
 
-  // digitalWrite(TURN_R, mcp.digitalRead(SW_TURN_R));
-  bool PRESSED_TURN_R = !mcp.digitalRead(SW_TURN_R);
-  if (PRESSED_TURN_R)
-  {
-    Serial.println("Right turn button depressed.");
-  }
+  // Scan I/O for changes to buttons and inputs
+  checkForButtonStateChanges();
 
-  delay(100);
+  // Update flashing lights
+  blinkers();
+
+  // Slow your roll
+  delay(50);
 }
