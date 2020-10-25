@@ -1,6 +1,11 @@
 #include <Arduino.h>
 
 #include <Adafruit_MCP23017.h>
+
+#ifdef OTA
+#include <ArduinoOTA.h>
+#endif
+
 #include <WiFi.h>
 #include <generic_i2c_rw.h>
 
@@ -14,6 +19,8 @@
 #include "StaticFiles.h"
 #include "SwitchStates.h"
 
+#define blinkTime 300
+
 #define btoa(x) ((x) ? "true" : "false")
 #define btoo(x) ((x) ? "on" : "off")
 
@@ -26,8 +33,6 @@ SwitchStates lastButtonStates;
 SwitchStates powerStates;
 
 long lastBlink;
-
-uint blinkTime = 300;
 
 void blinkers() {
   if ((millis() - lastBlink) >= blinkTime) {
@@ -57,6 +62,16 @@ void updateItemFromRequest(Request &req, Response &res, char *description,
   Serial.printf("[API] %s: \%s\n", description, btoo(state));
   mcp.digitalWrite(outputPin, state);
   stateItem = state;
+  // handle cancellations via api
+  if (state) {
+    if (&stateItem == &powerStates.turnL) {
+      powerStates.turnR = false;
+      mcp.digitalWrite(TURN_R, false);
+    } else if (&stateItem == &powerStates.turnR) {
+      powerStates.turnL = false;
+      mcp.digitalWrite(TURN_L, false);
+    }
+  }
   return readStates(req, res);
 }
 
@@ -148,6 +163,45 @@ void setup() {
   Serial.printf("\nConnected to '%s', IP: ", WIFI_SSID);
   Serial.println(WiFi.localIP());
 
+#ifdef OTA
+
+  ArduinoOTA.setHostname("MotoWidget");
+  ArduinoOTA.setPasswordHash("f9d6f5b1dd30990866441e85606794b3"); // flashm3
+
+  ArduinoOTA
+      .onStart([]() {
+        String type;
+        if (ArduinoOTA.getCommand() == U_FLASH)
+          type = "sketch";
+        else // U_SPIFFS
+          type = "filesystem";
+
+        // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS
+        // using SPIFFS.end()
+        Serial.println("Start updating " + type);
+      })
+      .onEnd([]() { Serial.println("\nEnd"); })
+      .onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+      })
+      .onError([](ota_error_t error) {
+        Serial.printf("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR)
+          Serial.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR)
+          Serial.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR)
+          Serial.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR)
+          Serial.println("Receive Failed");
+        else if (error == OTA_END_ERROR)
+          Serial.println("End Failed");
+      });
+
+  ArduinoOTA.begin();
+
+#endif
+
   // Configure routes
   app.get("/states", &readStates);
   app.put("/turnL", &updateTurnL);
@@ -179,6 +233,11 @@ void loop() {
 
   // Update flashing lights
   blinkers();
+
+#if OTA
+  // OTA
+  ArduinoOTA.handle();
+#endif
 
   // Slow your roll
   delay(50);
