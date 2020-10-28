@@ -20,7 +20,10 @@
 #include "SwitchStates.h"
 
 #define blinkTime 300
-
+#define RELAY_ON LOW
+#define RELAY_OFF HIGH
+#define btor(x) ((x) ? RELAY_ON : RELAY_OFF)
+#define rtob(x) (x == RELAY_ON)
 #define btoa(x) ((x) ? "true" : "false")
 #define btoo(x) ((x) ? "on" : "off")
 
@@ -37,12 +40,12 @@ long lastBlink;
 void blinkers() {
   if ((millis() - lastBlink) >= blinkTime) {
     if (powerStates.turnL) {
-      bool leftBlink = mcp.digitalRead(TURN_L);
-      mcp.digitalWrite(TURN_L, !leftBlink);
+      bool leftBlink = rtob(mcp.digitalRead(TURN_L));
+      mcp.digitalWrite(TURN_L, btor(!leftBlink));
     }
     if (powerStates.turnR) {
-      bool rightBlink = mcp.digitalRead(TURN_R);
-      mcp.digitalWrite(TURN_R, !rightBlink);
+      bool rightBlink = rtob(mcp.digitalRead(TURN_R));
+      mcp.digitalWrite(TURN_R, btor(!rightBlink));
     }
     lastBlink = millis();
   }
@@ -60,16 +63,16 @@ void updateItemFromRequest(Request &req, Response &res, char *description,
                            int outputPin, bool &stateItem) {
   bool state = (req.read() != '0');
   Serial.printf("[API] %s: \%s\n", description, btoo(state));
-  mcp.digitalWrite(outputPin, state);
+  mcp.digitalWrite(outputPin, btor(state));
   stateItem = state;
   // handle cancellations via api
   if (state) {
     if (&stateItem == &powerStates.turnL) {
       powerStates.turnR = false;
-      mcp.digitalWrite(TURN_R, false);
+      mcp.digitalWrite(TURN_R, btor(false));
     } else if (&stateItem == &powerStates.turnR) {
       powerStates.turnL = false;
-      mcp.digitalWrite(TURN_L, false);
+      mcp.digitalWrite(TURN_L, btor(false));
     }
   }
   return readStates(req, res);
@@ -110,12 +113,16 @@ void reset_mcp23017() {
   vTaskDelay(1);
 }
 
-void updateOutputsToCurrentInputStates() {
-  mcp.digitalWrite(TURN_R, !mcp.digitalRead(SW_TURN_R));
-  mcp.digitalWrite(TURN_L, !mcp.digitalRead(SW_TURN_L));
-  mcp.digitalWrite(BRAKE_LIGHT, !mcp.digitalRead(SW_BRAKE));
-  mcp.digitalWrite(HEADLIGHT_HIGH, !mcp.digitalRead(SW_HEADLIGHT_HIGH));
-  mcp.digitalWrite(NEUTRAL, !mcp.digitalRead(SW_BRAKE));
+#define wrfi(output, input)                                                    \
+  mcp.digitalWrite(output, btor(!mcp.digitalRead(input)))
+
+// Reset all the outputs to the current state of the inputs
+void setOutputsToInputs() {
+  wrfi(TURN_R, SW_TURN_R);
+  wrfi(TURN_L, SW_TURN_L);
+  wrfi(BRAKE_LIGHT, SW_BRAKE);
+  wrfi(HEADLIGHT_HIGH, SW_HEADLIGHT_HIGH);
+  wrfi(NEUTRAL, SW_NEUTRAL);
 }
 
 // Setup
@@ -148,7 +155,7 @@ void setup() {
   mcp.pullUp(SW_NEUTRAL, HIGH);
 
   // Set initial output states
-  updateOutputsToCurrentInputStates();
+  setOutputsToInputs();
 
   // Enable serial logging
   Serial.begin(115200);
