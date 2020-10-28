@@ -10,7 +10,7 @@
 #include <generic_i2c_rw.h>
 
 #include "Constants.h"
-
+#include "Helpers.h"
 #include "aWOT.h"
 #include "driver/gpio.h"
 #include "driver/i2c.h"
@@ -19,15 +19,9 @@
 #include "StaticFiles.h"
 #include "SwitchStates.h"
 
-#define blinkTime 300
-#define RELAY_ON LOW
-#define RELAY_OFF HIGH
-#define btor(x) ((x) ? RELAY_ON : RELAY_OFF)
-#define rtob(x) (x == RELAY_ON)
-#define btoa(x) ((x) ? "true" : "false")
-#define btoo(x) ((x) ? "on" : "off")
+using namespace Helpers;
 
-WiFiServer server(80);
+WiFiServer server(WWW_PORT);
 Application app;
 
 Adafruit_MCP23017 mcp;
@@ -38,7 +32,7 @@ SwitchStates powerStates;
 long lastBlink;
 
 void blinkers() {
-  if ((millis() - lastBlink) >= blinkTime) {
+  if ((millis() - lastBlink) >= BLINK_TIME) {
     if (powerStates.turnL) {
       bool leftBlink = rtob(mcp.digitalRead(TURN_L));
       mcp.digitalWrite(TURN_L, btor(!leftBlink));
@@ -53,14 +47,11 @@ void blinkers() {
 
 // Route handlers
 void readStates(Request &req, Response &res) {
-  res.printf(
-      "{\"turnL\":%s,\"turnR\":%s,\"brake\":%s,\"highbeam\":%s,\"neutral\":%s}",
-      btoa(powerStates.turnL), btoa(powerStates.turnR), btoa(powerStates.brake),
-      btoa(powerStates.highbeam), btoa(powerStates.neutral));
+  res.printf("{\"turnL\":%s,\"turnR\":%s,\"brake\":%s,\"highbeam\":%s,\"neutral\":%s}", btoa(powerStates.turnL),
+             btoa(powerStates.turnR), btoa(powerStates.brake), btoa(powerStates.highbeam), btoa(powerStates.neutral));
 }
 
-void updateItemFromRequest(Request &req, Response &res, char *description,
-                           int outputPin, bool &stateItem) {
+void updateItemFromRequest(Request &req, Response &res, char *description, int outputPin, bool &stateItem) {
   bool state = (req.read() != '0');
   Serial.printf("[API] %s: \%s\n", description, btoo(state));
   mcp.digitalWrite(outputPin, btor(state));
@@ -95,8 +86,7 @@ void updateBrake(Request &req, Response &res) {
 
 void updateHighbeam(Request &req, Response &res) {
   char desc[] = "Highbeam";
-  return updateItemFromRequest(req, res, desc, HEADLIGHT_HIGH,
-                               powerStates.highbeam);
+  return updateItemFromRequest(req, res, desc, HEADLIGHT_HIGH, powerStates.highbeam);
 }
 
 void updateNeutral(Request &req, Response &res) {
@@ -113,8 +103,7 @@ void reset_mcp23017() {
   vTaskDelay(1);
 }
 
-#define wrfi(output, input)                                                    \
-  mcp.digitalWrite(output, btor(!mcp.digitalRead(input)))
+#define wrfi(output, input) mcp.digitalWrite(output, btor(!mcp.digitalRead(input)))
 
 // Reset all the outputs to the current state of the inputs
 void setOutputsToInputs() {
@@ -127,8 +116,7 @@ void setOutputsToInputs() {
 
 // Setup
 void setup() {
-  generic_i2c_master_init(I2C_NUM_0, I2C_MASTER_SCL_IO, I2C_MASTER_SDA_IO,
-                          I2C_MASTER_FREQ_HZ);
+  generic_i2c_master_init(I2C_NUM_0, I2C_MASTER_SCL_IO, I2C_MASTER_SDA_IO, I2C_MASTER_FREQ_HZ);
   reset_mcp23017();
 
   pinMode(MCP23017_INT_GPIO, INPUT);
@@ -235,8 +223,7 @@ void loop() {
   }
 
   // Scan I/O for changes to buttons and inputs
-  SwitchStates::checkForButtonStateChanges(&mcp, &lastButtonStates,
-                                           &powerStates);
+  SwitchStates::checkForButtonStateChanges(&mcp, &lastButtonStates, &powerStates);
 
   // Update flashing lights
   blinkers();

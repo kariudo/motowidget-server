@@ -1,3 +1,6 @@
+#ifndef SWITCHSTATES_H
+#define SWITCHSTATES_H
+
 #include "Constants.h"
 #include <Adafruit_MCP23017.h>
 #include <Arduino.h>
@@ -10,7 +13,8 @@ public:
   bool highbeam;
   bool neutral;
   void read(Adafruit_MCP23017 *mcp);
-  static void checkForButtonStateChanges(Adafruit_MCP23017 *mcp,
-                                         SwitchStates *lastButtonStates,
+  static void checkForButtonStateChanges(Adafruit_MCP23017 *mcp, SwitchStates *lastButtonStates,
                                          SwitchStates *powerStates);
 };
+
+#endif
