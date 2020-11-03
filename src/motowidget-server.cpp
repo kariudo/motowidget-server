@@ -65,6 +65,17 @@ void updateItemFromRequest(Request &req, Response &res, char *description, int o
   return readStates(req, res);
 }
 
+void updateHazard(Request &req, Response &res) {
+  char desc[] = "Hazard";
+  bool state = (req.read() != '0');
+  Serial.printf("[API] %s: \%s\n", desc, btoo(state));
+  mcp.digitalWrite(TURN_L, btor(state));
+  mcp.digitalWrite(TURN_R, btor(state));
+  powerStates.turnL = state;
+  powerStates.turnR = state;
+  return readStates(req, res);
+}
+
 void updateTurnL(Request &req, Response &res) {
   char desc[] = "Turn L";
   return updateItemFromRequest(req, res, desc, TURN_L, powerStates.turnL);
@@ -161,6 +172,7 @@ void setup() {
   app.put("/brake", &updateBrake);
   app.put("/highbeam", &updateHighbeam);
   app.put("/neutral", &updateNeutral);
+  app.put("/hazard", &updateHazard);
   app.use(staticFiles());
 
   // Start webserver
