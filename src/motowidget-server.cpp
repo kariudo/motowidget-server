@@ -110,15 +110,17 @@ void reset_mcp23017() {
   vTaskDelay(1);
 }
 
-#define wrfi(output, input) mcp.digitalWrite(output, btor(!mcp.digitalRead(input)))
+void writeRelayToInput(uint8_t output, uint8_t input){
+  mcp.digitalWrite(output, btor(!mcp.digitalRead(input)));
+}
 
 // Reset all the outputs to the current state of the inputs
 void setOutputsToInputs() {
-  wrfi(TURN_R, SW_TURN_R);
-  wrfi(TURN_L, SW_TURN_L);
-  wrfi(BRAKE_LIGHT, SW_BRAKE);
-  wrfi(HEADLIGHT_HIGH, SW_HEADLIGHT_HIGH);
-  wrfi(NEUTRAL, SW_NEUTRAL);
+  writeRelayToInput(TURN_R, SW_TURN_R);
+  writeRelayToInput(TURN_L, SW_TURN_L);
+  writeRelayToInput(BRAKE_LIGHT, SW_BRAKE);
+  writeRelayToInput(HEADLIGHT_HIGH, SW_HEADLIGHT_HIGH);
+  writeRelayToInput(NEUTRAL, SW_NEUTRAL);
 }
 
 // Setup
