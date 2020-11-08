@@ -2,8 +2,8 @@
 #define HELPERS_H
 
 // Relay state definitions
-#define RELAY_ON 0
-#define RELAY_OFF 1
+#define RELAY_ON 1
+#define RELAY_OFF 0
 
 namespace Helpers {
 
