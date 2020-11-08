@@ -47,9 +47,9 @@ void readStates(Request &req, Response &res) {
              btoa(powerStates.turnR), btoa(powerStates.brake), btoa(powerStates.highbeam), btoa(powerStates.neutral));
 }
 
-void updateItemFromRequest(Request &req, Response &res, char *description, int outputPin, bool &stateItem) {
+void updateItemFromRequest(Request &req, Response &res, const char *description, int outputPin, bool &stateItem) {
   bool state = (req.read() != '0');
-  Serial.printf("[API] %s: \%s\n", description, btoo(state));
+  Serial.printf("[API] %s: %s\n", description, btoo(state));
   mcp.digitalWrite(outputPin, btor(state));
   stateItem = state;
   // handle cancellations via api
@@ -68,7 +68,7 @@ void updateItemFromRequest(Request &req, Response &res, char *description, int o
 void updateHazard(Request &req, Response &res) {
   char desc[] = "Hazard";
   bool state = (req.read() != '0');
-  Serial.printf("[API] %s: \%s\n", desc, btoo(state));
+  Serial.printf("[API] %s: %s\n", desc, btoo(state));
   mcp.digitalWrite(TURN_L, btor(state));
   mcp.digitalWrite(TURN_R, btor(state));
   powerStates.turnL = state;
@@ -77,27 +77,27 @@ void updateHazard(Request &req, Response &res) {
 }
 
 void updateTurnL(Request &req, Response &res) {
-  char desc[] = "Turn L";
+  const char desc[] = "Turn L";
   return updateItemFromRequest(req, res, desc, TURN_L, powerStates.turnL);
 }
 
 void updateTurnR(Request &req, Response &res) {
-  char desc[] = "Turn R";
+  const char desc[] = "Turn R";
   return updateItemFromRequest(req, res, desc, TURN_R, powerStates.turnR);
 }
 
 void updateBrake(Request &req, Response &res) {
-  char desc[] = "Brake";
+  const char desc[] = "Brake";
   return updateItemFromRequest(req, res, desc, BRAKE_LIGHT, powerStates.brake);
 }
 
 void updateHighbeam(Request &req, Response &res) {
-  char desc[] = "Highbeam";
+  const char desc[] = "Highbeam";
   return updateItemFromRequest(req, res, desc, HEADLIGHT_HIGH, powerStates.highbeam);
 }
 
 void updateNeutral(Request &req, Response &res) {
-  char desc[] = "Neutral";
+  const char desc[] = "Neutral";
   return updateItemFromRequest(req, res, desc, NEUTRAL, powerStates.neutral);
 }
 
