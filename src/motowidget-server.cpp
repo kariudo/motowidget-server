@@ -43,8 +43,8 @@ void blinkers() {
 
 // Route handlers
 void readStates(Request &req, Response &res) {
-  res.printf("{\"turnL\":%s,\"turnR\":%s,\"brake\":%s,\"highbeam\":%s,\"neutral\":%s}", btoa(powerStates.turnL),
-             btoa(powerStates.turnR), btoa(powerStates.brake), btoa(powerStates.highbeam), btoa(powerStates.neutral));
+  res.printf("{\"turnL\":%s,\"turnR\":%s,\"brake\":%s,\"highBeam\":%s,\"neutral\":%s}", btoa(powerStates.turnL),
+             btoa(powerStates.turnR), btoa(powerStates.brake), btoa(powerStates.highBeam), btoa(powerStates.neutral));
 }
 
 void updateItemFromRequest(Request &req, Response &res, const char *description, int outputPin, bool &stateItem) {
@@ -93,7 +93,7 @@ void updateBrake(Request &req, Response &res) {
 
 void updateHighbeam(Request &req, Response &res) {
   const char desc[] = "Highbeam";
-  return updateItemFromRequest(req, res, desc, HEADLIGHT_HIGH, powerStates.highbeam);
+  return updateItemFromRequest(req, res, desc, HEADLIGHT_HIGH, powerStates.highBeam);
 }
 
 void updateNeutral(Request &req, Response &res) {
@@ -172,7 +172,7 @@ void setup() {
   app.put("/turnL", &updateTurnL);
   app.put("/turnR", &updateTurnR);
   app.put("/brake", &updateBrake);
-  app.put("/highbeam", &updateHighbeam);
+  app.put("/highBeam", &updateHighbeam);
   app.put("/neutral", &updateNeutral);
   app.put("/hazard", &updateHazard);
   app.use(staticFiles());

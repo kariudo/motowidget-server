@@ -34,3 +34,4 @@ const uint8_t SW_NEUTRAL = 4;
 
 // Timings
 const uint16_t BLINK_TIME = 300;
+const uint8_t DEBOUNCE_DELAY = 15;

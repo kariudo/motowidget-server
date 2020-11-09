@@ -1,5 +1,5 @@
-#ifndef SWITCHSTATES_H
-#define SWITCHSTATES_H
+#ifndef SWITCH_STATES_H
+#define SWITCH_STATES_H
 
 #include "Constants.h"
 #include <Adafruit_MCP23017.h>
@@ -10,9 +10,12 @@ public:
   bool turnL;
   bool turnR;
   bool brake;
-  bool highbeam;
+  bool highBeam;
   bool neutral;
   void read(Adafruit_MCP23017 *mcp);
+  bool equals(const SwitchStates &s);
+  bool operator==(const SwitchStates &s);
+  bool operator!=(const SwitchStates &s);
   static void checkForButtonStateChanges(Adafruit_MCP23017 *mcp, SwitchStates *lastButtonStates,
                                          SwitchStates *powerStates);
 };

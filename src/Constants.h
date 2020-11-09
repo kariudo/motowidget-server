@@ -46,5 +46,6 @@ extern const uint8_t SW_NEUTRAL;
 
 // Timings
 extern const uint16_t BLINK_TIME;
+extern const uint8_t DEBOUNCE_DELAY;
 
 #endif /* CONSTANTS_H */

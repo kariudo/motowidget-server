@@ -7,14 +7,25 @@ void SwitchStates::read(Adafruit_MCP23017 *mcp) {
   this->turnL = !mcp->digitalRead(SW_TURN_L);
   this->turnR = !mcp->digitalRead(SW_TURN_R);
   this->brake = !mcp->digitalRead(SW_BRAKE);
-  this->highbeam = !mcp->digitalRead(SW_HEADLIGHT_HIGH);
+  this->highBeam = !mcp->digitalRead(SW_HEADLIGHT_HIGH);
   this->neutral = !mcp->digitalRead(SW_NEUTRAL);
 }
 
-void SwitchStates::checkForButtonStateChanges(Adafruit_MCP23017 *mcp, SwitchStates *lastButtonStates,
+ void SwitchStates::checkForButtonStateChanges(Adafruit_MCP23017 *mcp, SwitchStates *lastButtonStates,
                                               SwitchStates *powerStates) {
-  SwitchStates currentButtonStates;
+  SwitchStates currentButtonStates{};
+  SwitchStates debounceButtonStates{};
   currentButtonStates.read(mcp);
+
+  if (currentButtonStates == *lastButtonStates) return; // No work to do if the states haven't changed.
+
+  // Debounce the input
+  vTaskDelay(DEBOUNCE_DELAY);
+  debounceButtonStates.read(mcp);
+
+  if (currentButtonStates != debounceButtonStates) {
+    return; // Ignore if the new states have shifted during debounce delay.
+  }
 
   // Toggles
   if (!lastButtonStates->turnL && currentButtonStates.turnL) {
@@ -35,10 +46,10 @@ void SwitchStates::checkForButtonStateChanges(Adafruit_MCP23017 *mcp, SwitchStat
     }
   }
 
-  if (!lastButtonStates->highbeam && currentButtonStates.highbeam) {
-    powerStates->highbeam = !powerStates->highbeam;
-    mcp->digitalWrite(HEADLIGHT_HIGH, btor(powerStates->highbeam));
-    Serial.printf("Highbeam toggled: %s\n", powerStates->highbeam ? "on" : "off");
+  if (!lastButtonStates->highBeam && currentButtonStates.highBeam) {
+    powerStates->highBeam = !powerStates->highBeam;
+    mcp->digitalWrite(HEADLIGHT_HIGH, btor(powerStates->highBeam));
+    Serial.printf("High-beam toggled: %s\n", powerStates->highBeam ? "on" : "off");
   }
 
   // Momentary
@@ -57,6 +68,14 @@ void SwitchStates::checkForButtonStateChanges(Adafruit_MCP23017 *mcp, SwitchStat
   lastButtonStates->turnL = currentButtonStates.turnL;
   lastButtonStates->turnR = currentButtonStates.turnR;
   lastButtonStates->brake = currentButtonStates.brake;
-  lastButtonStates->highbeam = currentButtonStates.highbeam;
+  lastButtonStates->highBeam = currentButtonStates.highBeam;
   lastButtonStates->neutral = currentButtonStates.neutral;
 }
+
+bool SwitchStates::equals(const SwitchStates &s) {
+  return turnL == s.turnL && turnR == s.turnR && highBeam == s.highBeam && neutral == s.neutral;
+}
+
+bool SwitchStates::operator==(const SwitchStates &s) { return equals(s); }
+
+bool SwitchStates::operator!=(const SwitchStates &s) { return !equals(s); }
